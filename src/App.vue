@@ -8,20 +8,28 @@
         </transition>
       </router-view>
     </main>
-    <ToastContainer :toasts="toast.toasts" @remove="toast.remove" />
+    <ToastContainer @remove="toast.remove" />
   </div>
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { watch } from 'vue'
 import { useAuthStore } from './stores/auth'
 import { useToast } from './composables/useToast'
 import Navbar from './components/Navbar.vue'
 import ToastContainer from './components/ToastContainer.vue'
 
 const router = useRouter()
+const route = useRoute()
 const auth = useAuthStore()
 const toast = useToast()
+
+toast.clearAll()
+
+watch(() => route.fullPath, () => {
+  toast.clearAll()
+})
 
 function handleLogout() {
   auth.logout()
