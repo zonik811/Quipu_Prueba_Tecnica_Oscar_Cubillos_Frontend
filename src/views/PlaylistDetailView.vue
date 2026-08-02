@@ -45,7 +45,7 @@
         </TransitionGroup>
       </div>
 
-      <RecommendationPanel :list-name="playlist.nombre" :user-token="userToken" />
+      <RecommendationPanel :list-name="playlist.nombre" />
     </template>
   </div>
 </template>
@@ -67,8 +67,6 @@ const router = useRouter()
 const { playlist, loading, error, loadOne, remove } = usePlaylists()
 const confirmDialog = useDeleteConfirmation()
 const toast = useToast()
-
-const userToken = localStorage.getItem('token') || ''
 
 function handleDeleteRequest() {
   confirmDialog.confirm(playlist.value.nombre)

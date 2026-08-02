@@ -42,14 +42,21 @@
 </template>
 
 <script setup>
+import { watch } from 'vue'
 import { useRecommendations } from '../composables/useRecommendations'
 
+/**
+ * @type {{ listName: string }}
+ */
 const props = defineProps({
-  listName: { type: String, required: true },
-  userToken: { type: String, default: '' }
+  listName: { type: String, required: true }
 })
 
-const { recommendations, loading, error, isFallback, load } = useRecommendations(props.userToken)
+const { recommendations, loading, error, isFallback, load } = useRecommendations(
+  () => props.listName
+)
 
-load(props.listName)
+load()
+
+watch(() => props.listName, () => load())
 </script>

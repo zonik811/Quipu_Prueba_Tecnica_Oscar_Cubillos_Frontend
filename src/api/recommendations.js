@@ -1,33 +1,43 @@
-import { getCookie } from '../utils/cookies'
+import api from './index'
 
-const BASE = '/api'
-
-function csrfHeaders() {
-  const token = getCookie('XSRF-TOKEN')
-  return token ? { 'X-CSRF-Token': token } : {}
+export class RecommendationError extends Error {
+  /**
+   * @param {string} message
+   * @param {number} status
+   */
+  constructor(message, status) {
+    super(message)
+    this.name = 'RecommendationError'
+    this.status = status
+  }
 }
 
-export async function fetchRecommendations(listName, userToken) {
-  const res = await fetch(
-    `${BASE}/lists/${encodeURIComponent(listName)}/recommendations`,
-    {
-      credentials: 'include',
-      headers: {
-        Authorization: `Bearer ${userToken}`,
-        'Content-Type': 'application/json',
-        ...csrfHeaders()
-      }
+/**
+ * @param {string} listName
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<{ playlist: string, recommendations: Array<{ titulo: string, artista: string, razon: string }> }>}
+ */
+export async function fetchRecommendations(listName, signal) {
+  try {
+    const { data } = await api.get(
+      `/lists/${encodeURIComponent(listName)}/recommendations`,
+      { signal }
+    )
+    return data
+  } catch (err) {
+    if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') {
+      throw err
     }
-  )
-
-  if (res.status === 503) {
-    throw { status: 503, message: 'IA no disponible' }
+    const status = err.response?.status || 0
+    if (status === 503) {
+      throw new RecommendationError('IA no disponible', 503)
+    }
+    if (status === 404) {
+      throw new RecommendationError('Lista no encontrada', 404)
+    }
+    throw new RecommendationError(
+      err.response?.data?.message || 'Error de conexión',
+      status
+    )
   }
-
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw { status: res.status, message: body.message || 'Error al cargar recomendaciones' }
-  }
-
-  return res.json()
 }

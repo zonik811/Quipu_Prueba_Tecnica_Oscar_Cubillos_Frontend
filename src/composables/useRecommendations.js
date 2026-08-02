@@ -1,6 +1,9 @@
-import { ref } from 'vue'
-import { fetchRecommendations } from '../api/recommendations'
+import { ref, onBeforeUnmount } from 'vue'
+import { fetchRecommendations, RecommendationError } from '../api/recommendations'
 
+/**
+ * @type {Array<{ titulo: string, artista: string, razon: string }>}
+ */
 const FALLBACK = [
   { titulo: 'Bohemian Rhapsody', artista: 'Queen', razon: 'Porque es un clásico atemporal' },
   { titulo: 'Blinding Lights', artista: 'The Weeknd', razon: 'Por su energía y ritmo' },
@@ -9,35 +12,50 @@ const FALLBACK = [
   { titulo: 'Uptown Funk', artista: 'Mark Ronson ft. Bruno Mars', razon: 'Para levantar el ánimo' }
 ]
 
-export function useRecommendations(userToken) {
+/**
+ * @param {() => string} getListName  — función que retorna el nombre actual de la playlist
+ */
+export function useRecommendations(getListName) {
+  /** @type {import('vue').Ref<Array<{ titulo: string, artista: string, razon: string }>>} */
   const recommendations = ref([])
+  /** @type {import('vue').Ref<boolean>} */
   const loading = ref(false)
+  /** @type {import('vue').Ref<string>} */
   const error = ref('')
+  /** @type {import('vue').Ref<boolean>} */
   const isFallback = ref(false)
 
-  async function load(listName) {
+  let controller = null
+
+  async function load() {
+    if (controller) controller.abort()
+    controller = new AbortController()
+
     loading.value = true
     error.value = ''
     isFallback.value = false
     recommendations.value = []
 
     try {
-      const data = await fetchRecommendations(listName, userToken)
+      const data = await fetchRecommendations(getListName(), controller.signal)
       recommendations.value = data.recommendations || []
     } catch (err) {
-      if (err.status === 503) {
+      if (err.name === 'CanceledError' || err.code === 'ERR_CANCELED') return
+      if (err instanceof RecommendationError && err.status === 503) {
         recommendations.value = FALLBACK
         isFallback.value = true
         error.value = 'IA no disponible, mostrando recomendaciones por defecto'
-      } else if (err.status === 404) {
-        error.value = 'Lista no encontrada'
       } else {
-        error.value = err.message || 'Error de conexión'
+        error.value = err.message || 'Error al cargar recomendaciones'
       }
     } finally {
       loading.value = false
     }
   }
+
+  onBeforeUnmount(() => {
+    if (controller) controller.abort()
+  })
 
   return { recommendations, loading, error, isFallback, load }
 }
