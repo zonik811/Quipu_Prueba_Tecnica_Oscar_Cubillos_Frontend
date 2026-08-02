@@ -1,4 +1,14 @@
 export function getCookie(name) {
-  const match = document.cookie.match(new RegExp(`${name}=([^;]+)`))
-  return match ? decodeURIComponent(match[1]) : null
+  const cookies = document.cookie.split(';')
+  for (const cookie of cookies) {
+    const [key, ...rest] = cookie.trim().split('=')
+    if (key === name) {
+      return decodeURIComponent(rest.join('='))
+    }
+  }
+  return null
+}
+
+export function getAllCookies() {
+  return document.cookie
 }
