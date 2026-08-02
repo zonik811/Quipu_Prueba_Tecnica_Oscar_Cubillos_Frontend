@@ -44,6 +44,8 @@
           />
         </TransitionGroup>
       </div>
+
+      <RecommendationPanel :list-name="playlist.nombre" :user-token="userToken" />
     </template>
   </div>
 </template>
@@ -58,12 +60,15 @@ import SongItem from '../components/SongItem.vue'
 import LoadingSkeleton from '../components/LoadingSkeleton.vue'
 import EmptyState from '../components/EmptyState.vue'
 import ConfirmDialog from '../components/ConfirmDialog.vue'
+import RecommendationPanel from '../components/RecommendationPanel.vue'
 
 const route = useRoute()
 const router = useRouter()
 const { playlist, loading, error, loadOne, remove } = usePlaylists()
 const confirmDialog = useDeleteConfirmation()
 const toast = useToast()
+
+const userToken = localStorage.getItem('token') || ''
 
 function handleDeleteRequest() {
   confirmDialog.confirm(playlist.value.nombre)
